@@ -1,0 +1,37 @@
+html {
+	height: 100%;
+}
+body {
+	height: 100%;
+	background-image: linear-gradient(to bottom right, #8200ff, #ffff00);
+	background-position: center;
+	background-repeat: no-repeat;
+}
+.contact {
+	padding-top: 60px;
+}
+.contact-form {
+    width: 70%;
+    margin: 0 auto;
+}
+.contact-form [type="submit"] {
+    width: 40%;
+}
+.btn-purple {
+	color: #fff;
+	background-color: #8200ff;
+	border-color: #8200ff;
+}
+.btn-purple:hover {
+	color: #fff;
+	background-color: #761cce;
+	border-color: #761cce;
+}
+@media (max-width: 768px) {
+    .contact-form {
+        width: 100%;
+    }
+    .contact-form [type="submit"] {
+        width: 100%;
+    }
+}
