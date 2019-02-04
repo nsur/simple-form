@@ -21,20 +21,29 @@ class MailSender {
 		),
 	);
 	static private $response = array();
-
+	/*
+	 * Ajax request handler
+	 */
 	static public function init() {
+		// Init values of some class variables
 		self::$response = self::$responseDefs;
 		$apiKeyArr = explode('-', self::$apiKey);
+		// Check is API key valid or not
 		if(empty($apiKeyArr[1])) {
+			// Set response state - error
 			self::setErrorData('message', 'API key is invalid');
+			// Return ajax response
 			self::response();
 		}
+		// Update API endpoint url depending on API key
 		self::$apiEndpoint = str_replace('<dc>', $apiKeyArr[1], self::$apiEndpoint);
-		self::$formData = $_POST['form_data'];
+		// Fill in form data from $_POST array
+		self::$formData = !empty($_POST['form_data']) ? $_POST['form_data'] : array();
 		if(empty(self::$formData)) {
 			self::setErrorData('message', 'Form data is empty');
 			self::response();
 		}
+		// Parse and validate form data
 		parse_str(self::$formData, $params);
 		foreach($params as $k => $v) {
 			if(in_array($k, self::$valideteFields)) {
@@ -47,33 +56,47 @@ class MailSender {
 				}
 			}
 		}
-		if(self::$response['error']) {
-			self::$response['success'] = false;
-		} else {
+		if(!self::$response['error']) {
+			// If no validation errors -try to make requests
 			$message = !empty($params['message']) ? $params['message'] : '';
 			$mailBody = 'First Name: '. $params['first_name']. '
 Last Name: '. $params['last_name']. '
 E-mail: '. $params['email']. '
 Message: '. $message;
+			// Send e-mail and handle errors
 			$mailSendRes = mail(self::$to, self::$subject, $mailBody);
 			if(!$mailSendRes) {
 				self::setErrorData('message', error_get_last());
 			}
+			// Check is current user already exists
 			self::checkEmailInMailChimpList($params);
 			if(!self::$response['error'] && self::$response['data']['email_address'] === $params['email']) {
+				// If yes - set appropriate message and response state
 				self::setErrorData('message', 'This user has already subscribed');
 			} else if(self::$response['data']['status'] == 404) {
+				// If not - reset response state and try to add new subscriber
 				self::resetErrorData();
 				self::addEmailToMailChimpList($params);
 			}
 		}
+		// Return ajax response
 		self::response();
 	}
+	/*
+	 * Check was current email already added to subscription list or not
+	 * $params: (array) array with form current data
+	 * return (bool) request status
+	 */
 	static private function checkEmailInMailChimpList($params) {
 		$method = 'GET';
 		$url = self::$apiEndpoint. '/lists/'. self::$listId. '/members/'. md5($params['email']);
 		return self::makeRequest($method, $url);
 	}
+	/*
+	 * Add new email to subscription list
+	 * $params: (array) array with form current data
+	 * return (bool) request status
+	 */
 	static private function addEmailToMailChimpList($params) {
 		$method = 'POST';
 		$url = self::$apiEndpoint. '/lists/'. self::$listId. '/members/';
@@ -86,47 +109,69 @@ Message: '. $message;
 			)
 		));
 	}
+	/*
+	 * Make MailChimp API request
+	 * $method: (string) method of HTTP request
+	 * $url: (string) url to MailChimp API endpoint
+	 * $body: (array) array of request data to send
+	 * return (bool) request status
+	 */
 	static private function makeRequest($method, $url, $body = array()) {
 		if(!function_exists('curl_init') || !function_exists('curl_setopt')) {
+			// Check are curl functions exist or not
 			self::setErrorData('message', 'Service need a cURL support');
 			return false;
 		}
+		// Set request status
 		$result = true;
+		// Init curl
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $url);
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+		// Set curl options
+		curl_setopt($ch, CURLOPT_URL, $url);				// request url
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array(			// http headers
 			'Accept: application/vnd.api+json',
 			'Content-Type: application/vnd.api+json',
 			'Authorization: apikey ' . self::$apiKey
 		));
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_VERBOSE, true);
-		curl_setopt($ch, CURLOPT_HEADER, true);
-		curl_setopt($ch, CURLOPT_TIMEOUT, self::$timeout);
-		curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
-		curl_setopt($ch, CURLOPT_ENCODING, '');
-		curl_setopt($ch, CURLINFO_HEADER_OUT, true);
-		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
-
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);		// return an request answer as a result of curl_exec() if it is success
+		curl_setopt($ch, CURLOPT_VERBOSE, true);			// put additional data to STDERR stream
+		curl_setopt($ch, CURLOPT_HEADER, true);				// include headers to output
+		curl_setopt($ch, CURLOPT_TIMEOUT, self::$timeout);	// timeout for curl_exec() execution
+		curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);	// set HTTP version to use
+		curl_setopt($ch, CURLOPT_ENCODING, '');							// set any encoding types for request headers
+		curl_setopt($ch, CURLINFO_HEADER_OUT, true);					// track of handle's request string
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);				// apply using of custom request methods
+		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));		// body of HTTP request
+		// Send curl request
 		$responseContent = curl_exec($ch);
 
 		if($responseContent === false) {
+			// Handle curl error
 			$result = false;
 			$errorMsg = 'cURL error: '. curl_error($ch);
 			self::setErrorData('message', $errorMsg);
 		} else {
+			// Get request headers and body
 			$responseHeaders = curl_getinfo($ch);
 			$responseBody = substr($responseContent, $responseHeaders['header_size']);
+			// Decode body data
 			self::$response['data'] = json_decode($responseBody, true);
 			if($responseHeaders['http_code'] != 200) {
+				// Handle request error
 				$result = false;
 				self::setErrorData('message', 'Request error: '. self::$response['data']['title']. '. '. self::$response['data']['detail']);
 			}
 		}
+		// Close curl session
 		curl_close($ch);
+		// Return result of request sending
 		return $result;
 	}
+	/*
+	 * Set error state to request response
+	 * $type: (string) type of error
+	 * $value: (string) value of error message or name of field which contains error
+	 */
 	static private function setErrorData($type, $value) {
 		self::$response['success'] = false;
 		self::$response['error'] = true;
@@ -136,12 +181,19 @@ Message: '. $message;
 			array_push(self::$response['errors'][$type], $value);
 		}
 	}
+	/*
+	 * Clear request response
+	 */
 	static private function resetErrorData() {
 		self::$response = self::$responseDefs;
 	}
+	/*
+	 * Return ajax response
+	 */
 	static private function response() {
 		exit(json_encode(self::$response));
 	}
 
 }
+// Call Ajax request handler
 MailSender::init();
