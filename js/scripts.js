@@ -54,7 +54,11 @@ jQuery(document).ready(function() {
                             window.location.href = redirect;
                         }, 15000);
                     }
-                }
+                },
+				error: function(res) {
+					let message = getMessage('message', 'Error '+ res.status+ ': '+ res.statusText);
+					showAlert(message, errorClass);
+				}
             });
         }
     });
