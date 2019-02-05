@@ -1,7 +1,7 @@
 <?php 
 class MailSender {
-	static private $listId = '3b0a85eabe';
-	static private $apiKey = '969f419219b047c2ecdde1de1dc8479b-us4';
+	static private $listId = 'list_id';
+	static private $apiKey = 'api_key';
 	static private $apiEndpoint = 'https://<dc>.api.mailchimp.com/3.0';
 	static private $timeout = 10;
 	static private $to = 'hello@hello.com';
