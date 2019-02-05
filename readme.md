@@ -10,9 +10,10 @@ Requirements:
 - Email should be validated
 - First name, Last name should be min 3 chars.
 - The form should be submitted to hello@hello.com
-- Using Mailchimp API, submit First name, Last name, Email to MailChimp list id: 3b0a85eabe
+- Using Mailchimp API, submit First name, Last name, Email to MailChimp
 
-    `API is 969f419219b047c2ecdde1de1dc8479b-us4`
+	`list id: your_list_id`
+    `API is your_api_key`
     `Email = EMAIL`
     `First name = FNAME`
     `Last name = LNAME`
