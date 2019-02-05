@@ -13,9 +13,13 @@ Requirements:
 - Using Mailchimp API, submit First name, Last name, Email to MailChimp
 
 	`list id: your_list_id`
+
     `API is your_api_key`
+
     `Email = EMAIL`
+
     `First name = FNAME`
+
     `Last name = LNAME`
 
     If need to test, you can create MailChimp account.
